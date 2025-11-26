@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통합 출결 관리 시스템</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 260px;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 9999;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #4a5568;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e0;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: #3182ce;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logout-container {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #4a5568;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .logout-btn-sidebar {
+            width: 100%;
+            padding: 12px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .logout-btn-sidebar:hover {
+            background: #c53030;
+        }
+
+        .user-info {
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            color: #cbd5e0;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px;
+            background: #f7fafc;
+            min-height: 100vh;
+            width: calc(100% - 260px);
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 10001;
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-weight: 600;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9998;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        :root {
+            --color-background: rgba(252, 252, 249, 1);
+            --color-surface: rgba(255, 255, 253, 1);
+            --color-text: rgba(19, 52, 59, 1);
+            --color-text-secondary: rgba(98, 108, 113, 1);
+            --color-primary: rgba(33, 128, 141, 1);
+            --color-primary-hover: rgba(29, 116, 128, 1);
+            --color-border: rgba(94, 82, 64, 0.2);
+            --color-secondary: rgba(94, 82, 64, 0.12);
+            --color-secondary-hover: rgba(94, 82, 64, 0.2);
+            --color-error: rgba(220, 38, 38, 1);
+            --color-success: rgba(34, 197, 94, 1);
+            --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --radius-base: 8px;
+            --radius-lg: 12px;
+            --space-8: 8px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: var(--space-24);
+            color: var(--color-text);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin: 0 0 var(--space-24) 0;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-20);
+            margin-bottom: var(--space-20);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        textarea, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+            outline: 2px solid var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--space-12);
+            margin-top: var(--space-16);
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: var(--space-12) var(--space-24);
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-secondary-hover);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .attendance-section {
+            margin-top: var(--space-24);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--space-16);
+            color: var(--color-text);
+        }
+
+        .attendance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-16);
+        }
+
+        .info-box {
+            background: rgba(33, 128, 141, 0.1);
+            border-left: 3px solid var(--color-primary);
+            padding: var(--space-12);
+            border-radius: var(--radius-base);
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-16);
+        }
+
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--color-primary) 0%, rgba(33, 128, 141, 0.8) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: var(--space-20);
+        }
+
+        .login-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--space-24);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-card h2 {
+            font-size: 24px;
+            margin-bottom: var(--space-8);
+            color: var(--color-text);
+        }
+
+        .login-card p {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-24);
+            font-size: 14px;
+        }
+
+        .login-form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        .login-form-group label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .login-form-group input {
+            width: 100%;
+            padding: var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 16px;
+        }
+
+        .login-form-group input:focus {
+            outline: 2px solid var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .login-error {
+            color: var(--color-error);
+            font-size: 13px;
+            margin-top: var(--space-8);
+            display: none;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: var(--space-12);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: var(--space-16);
+            transition: all 0.2s;
+        }
+
+        .login-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .sidebar.hidden-login {
+            display: none;
+        }
+
+        .main-content.fullwidth {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .attendance-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 70px 20px 20px 20px;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 글로벌 로그인 화면 -->
+    <div id="globalLoginScreen" class="login-screen">
+        <div class="login-card">
+            <h2>🔐 통합 관리 시스템</h2>
+            <p>시스템에 접근하려면 비밀번호를 입력하세요.</p>
+
+            <div class="login-form-group">
+                <label for="globalPasswordInput">비밀번호</label>
+                <input 
+                    type="password" 
+                    id="globalPasswordInput" 
+                    placeholder="비밀번호 입력"
+                    onkeypress="if(event.key==='Enter') verifyGlobalPassword()"
+                    autofocus
+                >
+                <div class="login-error" id="globalPasswordError">비밀번호가 올바르지 않습니다.</div>
+            </div>
+
+            <button class="login-btn" id="globalLoginBtn" onclick="verifyGlobalPassword()">접근하기</button>
+
+            <div class="info-box">
+                💡 비밀번호는 관리자에게 문의하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- 모바일 메뉴 버튼 -->
+    <button class="menu-toggle" onclick="toggleSidebar()">☰ 메뉴</button>
+    <div class="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- 사이드바 -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <span>📋 통합 관리 시스템</span>
+        </div>
+
+        <div class="nav-list">
+            <div class="nav-item active" onclick="switchPage('depart2', this)">
+                <span>2️⃣</span> 2부서 출석 보고서
+            </div>
+            <div class="nav-item" onclick="switchPage('depart1', this)">
+                <span>1️⃣</span> 1부서 출석 보고서
+            </div>
+            <div class="nav-item" onclick="switchPage('college', this)">
+                <span>🎓</span> 대학부 출석 보고서
+            </div>
+            <div class="nav-item" onclick="switchPage('newfamily', this)">
+                <span>🌱</span> 새가족부 출석 보고서
+            </div>
+        </div>
+
+        <div class="logout-container">
+            <div class="user-info">
+                ✅ 로그인됨
+            </div>
+            <button class="logout-btn-sidebar" onclick="logoutSystem()">
+                🚪 로그아웃
+            </button>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content">
+        
+        <!-- 2부서 출석 보고서 페이지 -->
+        <div id="page-depart2" class="page-section active">
+            <div class="container">
+                <h1>2부서 - 출석 보고서</h1>
+                <p class="subtitle">2부서 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="depart2_inputData">데이터 입력</label>
+                        <textarea id="depart2_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="depart2_auth1">1) 인증안함</label>
+                                <input type="text" id="depart2_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth2">2) 인증오류</label>
+                                <input type="text" id="depart2_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth3">3) 온라인예배</label>
+                                <input type="text" id="depart2_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth4">4) 대체예배</label>
+                                <input type="text" id="depart2_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('depart2')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('depart2')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="depart2_resultsSection" class="results-section">
+                    <div class="card">
+                        <h2 style="margin-top: 0; margin-bottom: 16px;">출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('depart2')">전체 보고서 복사</button>
+                        <textarea id="depart2_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1부서 출석 보고서 페이지 -->
+        <div id="page-depart1" class="page-section">
+            <div class="container">
+                <h1>1부서 - 출석 보고서</h1>
+                <p class="subtitle">1부서 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="depart1_inputData">데이터 입력</label>
+                        <textarea id="depart1_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="depart1_auth1">1) 인증안함</label>
+                                <input type="text" id="depart1_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth2">2) 인증오류</label>
+                                <input type="text" id="depart1_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth3">3) 온라인예배</label>
+                                <input type="text" id="depart1_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth4">4) 대체예배</label>
+                                <input type="text" id="depart1_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('depart1')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('depart1')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="depart1_resultsSection" class="results-section">
+                    <div class="card">
+                        <h2 style="margin-top: 0; margin-bottom: 16px;">출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('depart1')">전체 보고서 복사</button>
+                        <textarea id="depart1_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대학부 출석 보고서 페이지 -->
+        <div id="page-college" class="page-section">
+            <div class="container">
+                <h1>대학부 - 출석 보고서</h1>
+                <p class="subtitle">대학부 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="college_inputData">데이터 입력</label>
+                        <textarea id="college_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="college_auth1">1) 인증안함</label>
+                                <input type="text" id="college_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth2">2) 인증오류</label>
+                                <input type="text" id="college_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth3">3) 온라인예배</label>
+                                <input type="text" id="college_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth4">4) 대체예배</label>
+                                <input type="text" id="college_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('college')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('college')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="college_resultsSection" class="results-section">
+                    <div class="card">
+                        <h2 style="margin-top: 0; margin-bottom: 16px;">출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('college')">전체 보고서 복사</button>
+                        <textarea id="college_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 새가족부 출석 보고서 페이지 -->
+        <div id="page-newfamily" class="page-section">
+            <div class="container">
+                <h1>새가족부 - 출석 보고서</h1>
+                <p class="subtitle">새가족부 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="newfamily_inputData">데이터 입력</label>
+                        <textarea id="newfamily_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="newfamily_auth1">1) 인증안함</label>
+                                <input type="text" id="newfamily_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth2">2) 인증오류</label>
+                                <input type="text" id="newfamily_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth3">3) 온라인예배</label>
+                                <input type="text" id="newfamily_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth4">4) 대체예배</label>
+                                <input type="text" id="newfamily_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('newfamily')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('newfamily')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="newfamily_resultsSection" class="results-section">
+                    <div class="card">
+                        <h2 style="margin-top: 0; margin-bottom: 16px;">출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('newfamily')">전체 보고서 복사</button>
+                        <textarea id="newfamily_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ===== Google Apps Script URL =====
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKc6OgEbR715WTtB5nSXhfykuWotHfQzBZ-br_gUS1cNZmrRPxo4UvuPxC6kX9m7aKcQ/exec";
+        let isLoggedIn = false;
+
+        // ===== 페이지 로드 시 =====
+        window.addEventListener('load', () => {
+            checkGlobalLoginStatus();
+        });
+
+        // ===== 글로벌 로그인 확인 =====
+        function checkGlobalLoginStatus() {
+            const loggedIn = sessionStorage.getItem('globalSystemLoggedIn');
+            if (loggedIn === 'true') {
+                showSystem();
+            } else {
+                showGlobalLogin();
+            }
+        }
+
+        // ===== 글로벌 비밀번호 검증 =====
+        async function verifyGlobalPassword() {
+            const passwordInput = document.getElementById('globalPasswordInput');
+            const password = passwordInput.value.trim();
+            const errorMsg = document.getElementById('globalPasswordError');
+            const loginBtn = document.getElementById('globalLoginBtn');
+
+            if (!password) {
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                loginBtn.disabled = true;
+                loginBtn.textContent = '확인 중...';
+
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'verifyPassword',
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionStorage.setItem('globalSystemLoggedIn', 'true');
+                    isLoggedIn = true;
+                    showSystem();
+                    passwordInput.value = '';
+                    errorMsg.style.display = 'none';
+                } else {
+                    errorMsg.style.display = 'block';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                console.error('인증 오류:', error);
+                errorMsg.textContent = '네트워크 오류가 발생했습니다.';
+                errorMsg.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '접근하기';
+            }
+        }
+
+        // ===== UI 표시 =====
+        function showGlobalLogin() {
+            document.getElementById('globalLoginScreen').classList.remove('hidden');
+            document.querySelector('.sidebar').classList.add('hidden-login');
+            document.querySelector('.main-content').classList.add('fullwidth');
+            isLoggedIn = false;
+        }
+
+        function showSystem() {
+            document.getElementById('globalLoginScreen').classList.add('hidden');
+            document.querySelector('.sidebar').classList.remove('hidden-login');
+            document.querySelector('.main-content').classList.remove('fullwidth');
+            isLoggedIn = true;
+        }
+
+        // ===== 로그아웃 =====
+        function logoutSystem() {
+            if (confirm('로그아웃하시겠습니까?')) {
+                sessionStorage.removeItem('globalSystemLoggedIn');
+                isLoggedIn = false;
+                showGlobalLogin();
+                document.getElementById('globalPasswordInput').value = '';
+                document.getElementById('globalPasswordInput').focus();
+            }
+        }
+
+        // ===== 페이지 전환 =====
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-section').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById('page-' + pageId).classList.add('active');
+            if (element) element.classList.add('active');
+
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.querySelector('.overlay').classList.remove('active');
+            }
+        }
+
+        // ===== 사이드바 토글 =====
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('active');
+        }
+
+        // ===== 부서별 데이터 처리 =====
+        async function processDeptData(deptKey) {
+            const inputData = document.getElementById(`${deptKey}_inputData`).value.trim();
+            const auth1 = document.getElementById(`${deptKey}_auth1`).value.trim();
+            const auth2 = document.getElementById(`${deptKey}_auth2`).value.trim();
+            const auth3 = document.getElementById(`${deptKey}_auth3`).value.trim();
+            const auth4 = document.getElementById(`${deptKey}_auth4`).value.trim();
+
+            if (!inputData) {
+                alert('데이터를 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'processAttendance',
+                        department: deptKey,
+                        inputData: inputData,
+                        auth1: auth1,
+                        auth2: auth2,
+                        auth3: auth3,
+                        auth4: auth4
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayDeptResults(deptKey, data);
+                } else {
+                    alert('오류: ' + (data.message || '데이터 처리 실패'));
+                }
+            } catch (error) {
+                console.error('처리 오류:', error);
+                alert('네트워크 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // ===== 부서별 결과 표시 =====
+        function displayDeptResults(deptKey, data) {
+            document.getElementById(`${deptKey}_reportOutput`).value = data.report;
+            document.getElementById(`${deptKey}_resultsSection`).classList.add('visible');
+        }
+
+        // ===== 부서별 보고서 복사 =====
+        function copyDeptReport(deptKey) {
+            const reportText = document.getElementById(`${deptKey}_reportOutput`).value;
+            copyToClipboard(reportText);
+        }
+
+        // ===== 부서별 초기화 =====
+        function resetDept(deptKey) {
+            document.getElementById(`${deptKey}_inputData`).value = '';
+            document.getElementById(`${deptKey}_auth1`).value = '';
+            document.getElementById(`${deptKey}_auth2`).value = '';
+            document.getElementById(`${deptKey}_auth3`).value = '';
+            document.getElementById(`${deptKey}_auth4`).value = '';
+            document.getElementById(`${deptKey}_resultsSection`).classList.remove('visible');
+        }
+
+        // ===== 클립보드 복사 =====
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => alert('✓ 복사됨!'))
+                    .catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✓ 복사됨!');
+            } catch (err) {
+                alert('복사 실패: ' + err);
+            }
+        }
+    </script>
+</body>
+</html>
