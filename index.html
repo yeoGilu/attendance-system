@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통합 출결 관리 시스템</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 260px;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 9999;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #4a5568;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e0;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: #3182ce;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 메뉴 그룹 (접을 수 있는 섹션) */
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .nav-group-header {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #cbd5e0;
+            font-weight: 500;
+            user-select: none;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .nav-group-header:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-group-header.active {
+            background: #3182ce;
+            color: white;
+        }
+
+        .nav-group-toggle {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .nav-group-toggle.open {
+            transform: rotate(180deg);
+        }
+
+        .nav-group-items {
+            display: none;
+            flex-direction: column;
+            gap: 0;
+            background: rgba(0,0,0,0.2);
+            border-left: 3px solid #3182ce;
+            margin-left: 10px;
+        }
+
+        .nav-group-items.open {
+            display: flex;
+        }
+
+        .nav-subitem {
+            padding: 10px 15px 10px 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #cbd5e0;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        .nav-subitem:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-subitem.active {
+            background: rgba(49, 130, 206, 0.5);
+            color: white;
+            font-weight: 600;
+        }
+
+        .logout-container {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #4a5568;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .logout-btn-sidebar {
+            width: 100%;
+            padding: 12px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .logout-btn-sidebar:hover {
+            background: #c53030;
+        }
+
+        .user-info {
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            color: #cbd5e0;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px;
+            background: #f7fafc;
+            min-height: 100vh;
+            width: calc(100% - 260px);
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+            width: 100%;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        .page-section .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 10001;
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-weight: 600;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9998;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        :root {
+            --color-background: rgba(252, 252, 249, 1);
+            --color-surface: rgba(255, 255, 253, 1);
+            --color-text: rgba(19, 52, 59, 1);
+            --color-text-secondary: rgba(98, 108, 113, 1);
+            --color-primary: rgba(33, 128, 141, 1);
+            --color-primary-hover: rgba(29, 116, 128, 1);
+            --color-border: rgba(94, 82, 64, 0.2);
+            --color-secondary: rgba(94, 82, 64, 0.12);
+            --color-secondary-hover: rgba(94, 82, 64, 0.2);
+            --color-error: rgba(220, 38, 38, 1);
+            --color-success: rgba(34, 197, 94, 1);
+            --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --radius-base: 8px;
+            --radius-lg: 12px;
+            --space-8: 8px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: var(--space-24);
+            color: var(--color-text);
+        }
+
+        h2 {
+            font-size: 20px;
+            margin: 0 0 var(--space-16) 0;
+            color: var(--color-text);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin: 0 0 var(--space-24) 0;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-20);
+            margin-bottom: var(--space-20);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        textarea, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+            outline: 2px solid var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--space-12);
+            margin-top: var(--space-16);
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: var(--space-12) var(--space-24);
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-secondary-hover);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .attendance-section {
+            margin-top: var(--space-24);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--space-16);
+            color: var(--color-text);
+        }
+
+        .attendance-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-16);
+        }
+
+        .info-box {
+            background: rgba(33, 128, 141, 0.1);
+            border-left: 3px solid var(--color-primary);
+            padding: var(--space-12);
+            border-radius: var(--radius-base);
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-16);
+        }
+
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--color-primary) 0%, rgba(33, 128, 141, 0.8) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: var(--space-20);
+        }
+
+        .login-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--space-24);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .login-card h2 {
+            font-size: 24px;
+            margin-bottom: var(--space-8);
+            color: var(--color-text);
+        }
+
+        .login-card p {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-24);
+            font-size: 14px;
+        }
+
+        .login-form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        .login-form-group label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .login-form-group input {
+            width: 100%;
+            padding: var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background: var(--color-surface);
+            color: var(--color-text);
+            font-size: 16px;
+        }
+
+        .login-form-group input:focus {
+            outline: 2px solid var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .login-error {
+            color: var(--color-error);
+            font-size: 13px;
+            margin-top: var(--space-8);
+            display: none;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: var(--space-12);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: var(--space-16);
+            transition: all 0.2s;
+        }
+
+        .login-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .sidebar.hidden-login {
+            display: none;
+        }
+
+        .main-content.fullwidth {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        /* 통계 및 결과 테이블 스타일 */
+        .stats {
+            display: flex;
+            gap: var(--space-24);
+            margin-bottom: var(--space-24);
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            flex: 1;
+            min-width: 150px;
+            padding: var(--space-16);
+            background: rgba(33, 128, 141, 0.08);
+            border-radius: var(--radius-base);
+            border: 1px solid var(--color-border);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-8);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--space-24);
+        }
+
+        thead {
+            background: var(--color-secondary);
+        }
+
+        th, td {
+            padding: var(--space-12);
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--color-text);
+        }
+
+        td {
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        tr:hover {
+            background: var(--color-secondary);
+        }
+
+        .group-section {
+            margin-bottom: var(--space-24);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-16);
+            padding-bottom: var(--space-12);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .group-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .group-count {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            background: var(--color-secondary);
+            padding: 6px 12px;
+            border-radius: 999px;
+        }
+
+        .name-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-12);
+            margin-bottom: var(--space-16);
+            padding: var(--space-16);
+            background: rgba(245, 158, 11, 0.08);
+            border-radius: var(--radius-base);
+            border: 1px solid var(--color-border);
+        }
+
+        .name-item {
+            padding: var(--space-8);
+            background: var(--color-surface);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid var(--color-border);
+        }
+
+        .divider {
+            height: 2px;
+            background: var(--color-border);
+            margin: var(--space-24) 0;
+        }
+
+        @media (max-width: 768px) {
+            .attendance-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .name-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 70px 20px 20px 20px;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+    
+        /* 전도 페이지 스타일 */
+        .info-box {
+            background: rgba(94, 82, 64, 0.12);
+            border-left: 3px solid rgba(33, 128, 141, 1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: rgba(98, 108, 113, 1);
+        }
+
+        .result-container {
+            position: relative;
+            background: rgba(255, 255, 253, 1);
+            border: 1px solid rgba(94, 82, 64, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .result-area {
+            background: rgba(255, 255, 253, 1);
+            border: 1px solid rgba(94, 82, 64, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            white-space: pre-wrap;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.8;
+            max-height: 600px;
+            overflow-y: auto;
+            color: rgba(19, 52, 59, 1);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 8px 16px;
+            background: rgba(33, 128, 141, 1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .copy-btn:hover {
+            background: rgba(29, 116, 128, 1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .info-box {
+                background: rgba(119, 124, 124, 0.15);
+                border-left-color: rgba(50, 184, 198, 1);
+                color: rgba(167, 169, 169, 0.7);
+            }
+
+            .result-area {
+                background: rgba(38, 40, 40, 1);
+                border-color: rgba(119, 124, 124, 0.3);
+                color: rgba(245, 245, 245, 1);
+            }
+        }
+</style>
+</head>
+<body>
+    <!-- 글로벌 로그인 화면 -->
+    <div id="globalLoginScreen" class="login-screen">
+        <div class="login-card">
+            <h2>통합 관리 시스템</h2>
+            <p>시스템에 접근하려면 비밀번호를 입력하세요.</p>
+
+            <div class="login-form-group">
+                <label for="globalPasswordInput">비밀번호</label>
+                <input 
+                    type="password" 
+                    id="globalPasswordInput" 
+                    placeholder="비밀번호 입력"
+                    onkeypress="if(event.key==='Enter') verifyGlobalPassword()"
+                    autofocus
+                >
+                <div class="login-error" id="globalPasswordError">비밀번호가 올바르지 않습니다.</div>
+            </div>
+
+            <button class="login-btn" id="globalLoginBtn" onclick="verifyGlobalPassword()">접근하기</button>
+
+            <div class="info-box">
+                비밀번호는 관리자에게 문의하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- 모바일 메뉴 버튼 -->
+    <button class="menu-toggle" onclick="toggleSidebar()">메뉴</button>
+    <div class="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- 사이드바 -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <span>통합 관리 시스템</span>
+        </div>
+
+        <div class="nav-list">
+            <!-- 예배 그룹 -->
+            <div class="nav-group">
+                <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>예배</span>
+                    <span class="nav-group-toggle">▼</span>
+                </div>
+                <div class="nav-group-items">
+                    <div class="nav-subitem active" onclick="switchPage('depart1', this)">
+                        1부서 출석 보고서
+                    </div>
+                    <div class="nav-subitem" onclick="switchPage('depart2', this)">
+                        2부서 출석 보고서
+                    </div>
+                    <div class="nav-subitem" onclick="switchPage('college', this)">
+                        대학부 출석 보고서
+                    </div>
+                    <div class="nav-subitem" onclick="switchPage('newfamily', this)">
+                        새가족부 출석 보고서
+                    </div>
+                </div>
+            </div>
+
+            <!-- 전도 그룹 -->
+            <div class="nav-group">
+                <div class="nav-group-header" onclick="toggleNavGroup(this)">
+                    <span>전도</span>
+                    <span class="nav-group-toggle">▼</span>
+                </div>
+                <div class="nav-group-items">
+                    <div class="nav-subitem" onclick="switchPage('evangelism', this)">
+                        활동 누적
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logout-container">
+            <div class="user-info">
+                로그인됨
+            </div>
+            <button class="logout-btn-sidebar" onclick="logoutSystem()">
+                로그아웃
+            </button>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content">
+        
+        <!-- 1부서 출석 보고서 페이지 -->
+        <div id="page-depart1" class="page-section active">
+            <div class="container">
+                <h1>1부서 - 출석 보고서</h1>
+                <p class="subtitle">1부서 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="depart1_inputData">데이터 입력</label>
+                        <textarea id="depart1_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="depart1_auth1">1) 인증안함</label>
+                                <input type="text" id="depart1_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth2">2) 인증오류</label>
+                                <input type="text" id="depart1_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth3">3) 온라인예배</label>
+                                <input type="text" id="depart1_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart1_auth4">4) 대체예배</label>
+                                <input type="text" id="depart1_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('depart1')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('depart1')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="depart1_resultsSection" class="results-section">
+                    <!-- 기존 출석보고서 섹션 -->
+                    <div class="card">
+                        <h2>출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('depart1')">전체 보고서 복사</button>
+                        <textarea id="depart1_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <div class="divider"></div>
+
+                    <!-- 매칭 통계 섹션 -->
+                    <div class="card">
+                        <h2>매칭 통계</h2>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-label">총 인원</div>
+                                <div class="stat-value" id="depart1_totalCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 이상</div>
+                                <div class="stat-value" id="depart1_highAbsenceCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 미만</div>
+                                <div class="stat-value" id="depart1_lowAbsenceCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 매칭 결과 테이블 -->
+                    <div class="card">
+                        <h2>매칭 결과</h2>
+                        <table id="depart1_resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>마스킹된 이름</th>
+                                    <th>전체 이름</th>
+                                    <th>전화번호</th>
+                                    <th>구역</th>
+                                    <th>결석횟수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="depart1_resultsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 결석자 그룹 -->
+                    <div class="card">
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 이상</h3>
+                                <span class="group-count" id="depart1_highAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="depart1_highAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('depart1', 'high')">복사하기</button>
+                        </div>
+
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 미만</h3>
+                                <span class="group-count" id="depart1_lowAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="depart1_lowAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('depart1', 'low')">복사하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2부서 출석 보고서 페이지 -->
+        <div id="page-depart2" class="page-section">
+            <div class="container">
+                <h1>2부서 - 출석 보고서</h1>
+                <p class="subtitle">2부서 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="depart2_inputData">데이터 입력</label>
+                        <textarea id="depart2_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="depart2_auth1">1) 인증안함</label>
+                                <input type="text" id="depart2_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth2">2) 인증오류</label>
+                                <input type="text" id="depart2_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth3">3) 온라인예배</label>
+                                <input type="text" id="depart2_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="depart2_auth4">4) 대체예배</label>
+                                <input type="text" id="depart2_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('depart2')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('depart2')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="depart2_resultsSection" class="results-section">
+                    <!-- 기존 출석보고서 섹션 -->
+                    <div class="card">
+                        <h2>출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('depart2')">전체 보고서 복사</button>
+                        <textarea id="depart2_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <div class="divider"></div>
+
+                    <!-- 매칭 통계 섹션 -->
+                    <div class="card">
+                        <h2>매칭 통계</h2>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-label">총 인원</div>
+                                <div class="stat-value" id="depart2_totalCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 이상</div>
+                                <div class="stat-value" id="depart2_highAbsenceCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 미만</div>
+                                <div class="stat-value" id="depart2_lowAbsenceCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 매칭 결과 테이블 -->
+                    <div class="card">
+                        <h2>매칭 결과</h2>
+                        <table id="depart2_resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>마스킹된 이름</th>
+                                    <th>전체 이름</th>
+                                    <th>전화번호</th>
+                                    <th>구역</th>
+                                    <th>결석횟수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="depart2_resultsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 결석자 그룹 -->
+                    <div class="card">
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 이상</h3>
+                                <span class="group-count" id="depart2_highAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="depart2_highAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('depart2', 'high')">복사하기</button>
+                        </div>
+
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 미만</h3>
+                                <span class="group-count" id="depart2_lowAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="depart2_lowAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('depart2', 'low')">복사하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 대학부 출석 보고서 페이지 -->
+        <div id="page-college" class="page-section">
+            <div class="container">
+                <h1>대학부 - 출석 보고서</h1>
+                <p class="subtitle">대학부 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="college_inputData">데이터 입력</label>
+                        <textarea id="college_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="college_auth1">1) 인증안함</label>
+                                <input type="text" id="college_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth2">2) 인증오류</label>
+                                <input type="text" id="college_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth3">3) 온라인예배</label>
+                                <input type="text" id="college_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="college_auth4">4) 대체예배</label>
+                                <input type="text" id="college_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('college')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('college')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="college_resultsSection" class="results-section">
+                    <!-- 기존 출석보고서 섹션 -->
+                    <div class="card">
+                        <h2>출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('college')">전체 보고서 복사</button>
+                        <textarea id="college_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <div class="divider"></div>
+
+                    <!-- 매칭 통계 섹션 -->
+                    <div class="card">
+                        <h2>매칭 통계</h2>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-label">총 인원</div>
+                                <div class="stat-value" id="college_totalCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 이상</div>
+                                <div class="stat-value" id="college_highAbsenceCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 미만</div>
+                                <div class="stat-value" id="college_lowAbsenceCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 매칭 결과 테이블 -->
+                    <div class="card">
+                        <h2>매칭 결과</h2>
+                        <table id="college_resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>마스킹된 이름</th>
+                                    <th>전체 이름</th>
+                                    <th>전화번호</th>
+                                    <th>구역</th>
+                                    <th>결석횟수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="college_resultsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 결석자 그룹 -->
+                    <div class="card">
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 이상</h3>
+                                <span class="group-count" id="college_highAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="college_highAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('college', 'high')">복사하기</button>
+                        </div>
+
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 미만</h3>
+                                <span class="group-count" id="college_lowAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="college_lowAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('college', 'low')">복사하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 새가족부 출석 보고서 페이지 -->
+        <div id="page-newfamily" class="page-section">
+            <div class="container">
+                <h1>새가족부 - 출석 보고서</h1>
+                <p class="subtitle">새가족부 예배 출석 데이터 자동화 프로그램</p>
+
+                <div class="card">
+                    <div class="form-group">
+                        <label for="newfamily_inputData">데이터 입력</label>
+                        <textarea id="newfamily_inputData" placeholder="(이름, 전화번호, 구역, 결석횟수)"></textarea>
+                    </div>
+
+                    <div class="attendance-section">
+                        <div class="section-title">사유출석</div>
+                        <div class="attendance-grid">
+                            <div class="form-group">
+                                <label for="newfamily_auth1">1) 인증안함</label>
+                                <input type="text" id="newfamily_auth1" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth2">2) 인증오류</label>
+                                <input type="text" id="newfamily_auth2" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth3">3) 온라인예배</label>
+                                <input type="text" id="newfamily_auth3" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                            <div class="form-group">
+                                <label for="newfamily_auth4">4) 대체예배</label>
+                                <input type="text" id="newfamily_auth4" placeholder="이름을 띄어쓰기로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-primary" onclick="processDeptData('newfamily')">만들기</button>
+                        <button class="btn-secondary" onclick="resetDept('newfamily')">초기화</button>
+                    </div>
+                </div>
+
+                <div id="newfamily_resultsSection" class="results-section">
+                    <!-- 기존 출석보고서 섹션 -->
+                    <div class="card">
+                        <h2>출석 보고서</h2>
+                        <button class="btn-primary" onclick="copyDeptReport('newfamily')">전체 보고서 복사</button>
+                        <textarea id="newfamily_reportOutput" readonly style="min-height: 500px; margin-top: 16px; font-family: monospace; font-size: 12px; white-space: pre;"></textarea>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <div class="divider"></div>
+
+                    <!-- 매칭 통계 섹션 -->
+                    <div class="card">
+                        <h2>매칭 통계</h2>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-label">총 인원</div>
+                                <div class="stat-value" id="newfamily_totalCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 이상</div>
+                                <div class="stat-value" id="newfamily_highAbsenceCount">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">결석 8회 미만</div>
+                                <div class="stat-value" id="newfamily_lowAbsenceCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 매칭 결과 테이블 -->
+                    <div class="card">
+                        <h2>매칭 결과</h2>
+                        <table id="newfamily_resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>마스킹된 이름</th>
+                                    <th>전체 이름</th>
+                                    <th>전화번호</th>
+                                    <th>구역</th>
+                                    <th>결석횟수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="newfamily_resultsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 결석자 그룹 -->
+                    <div class="card">
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 이상</h3>
+                                <span class="group-count" id="newfamily_highAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="newfamily_highAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('newfamily', 'high')">복사하기</button>
+                        </div>
+
+                        <div class="group-section">
+                            <div class="group-header">
+                                <h3 class="group-title">결석 8회 미만</h3>
+                                <span class="group-count" id="newfamily_lowAbsenceCountLabel">0명</span>
+                            </div>
+                            <div class="name-grid" id="newfamily_lowAbsenceGrid"></div>
+                            <button class="btn-primary" onclick="copyDeptNames('newfamily', 'low')">복사하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ===== Google Apps Script URL =====
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKZH7MiKm5G0I0jFSiHUJbwPJHu7HrkCJyTv32ig_q1T7SzPkzu0Lvigb3s0UN7CKBGA/exec";
+        let isLoggedIn = false;
+        let deptResults = {};
+
+        // ===== 페이지 로드 시 =====
+        window.addEventListener('load', () => {
+            checkGlobalLoginStatus();
+        });
+
+        // ===== 글로벌 로그인 확인 =====
+        function checkGlobalLoginStatus() {
+            const loggedIn = sessionStorage.getItem('globalSystemLoggedIn');
+            if (loggedIn === 'true') {
+                showSystem();
+            } else {
+                showGlobalLogin();
+            }
+        }
+
+        // ===== 글로벌 비밀번호 검증 =====
+        async function verifyGlobalPassword() {
+            const passwordInput = document.getElementById('globalPasswordInput');
+            const password = passwordInput.value.trim();
+            const errorMsg = document.getElementById('globalPasswordError');
+            const loginBtn = document.getElementById('globalLoginBtn');
+
+            if (!password) {
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                loginBtn.disabled = true;
+                loginBtn.textContent = '확인 중...';
+
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'verifyPassword',
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionStorage.setItem('globalSystemLoggedIn', 'true');
+                    isLoggedIn = true;
+                    showSystem();
+                    passwordInput.value = '';
+                    errorMsg.style.display = 'none';
+                } else {
+                    errorMsg.style.display = 'block';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                console.error('인증 오류:', error);
+                errorMsg.textContent = '네트워크 오류가 발생했습니다.';
+                errorMsg.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '접근하기';
+            }
+        }
+
+        // ===== UI 표시 =====
+        function showGlobalLogin() {
+            document.getElementById('globalLoginScreen').classList.remove('hidden');
+            document.querySelector('.sidebar').classList.add('hidden-login');
+            document.querySelector('.main-content').classList.add('fullwidth');
+            isLoggedIn = false;
+        }
+
+        function showSystem() {
+            document.getElementById('globalLoginScreen').classList.add('hidden');
+            document.querySelector('.sidebar').classList.remove('hidden-login');
+            document.querySelector('.main-content').classList.remove('fullwidth');
+            isLoggedIn = true;
+        }
+
+        // ===== 로그아웃 =====
+        function logoutSystem() {
+            if (confirm('로그아웃하시겠습니까?')) {
+                sessionStorage.removeItem('globalSystemLoggedIn');
+                isLoggedIn = false;
+                showGlobalLogin();
+                document.getElementById('globalPasswordInput').value = '';
+                document.getElementById('globalPasswordInput').focus();
+            }
+        }
+
+        // ===== 네비게이션 그룹 토글 =====
+        function toggleNavGroup(header) {
+            const items = header.nextElementSibling;
+            const toggle = header.querySelector('.nav-group-toggle');
+            
+            if (items.classList.contains('open')) {
+                items.classList.remove('open');
+                toggle.classList.remove('open');
+            } else {
+                items.classList.add('open');
+                toggle.classList.add('open');
+            }
+        }
+
+        // ===== 페이지 전환 =====
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-section').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-subitem').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById('page-' + pageId).classList.add('active');
+            if (element) element.classList.add('active');
+
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+                document.querySelector('.overlay').classList.remove('active');
+            }
+        }
+
+        // ===== 사이드바 토글 =====
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('active');
+        }
+
+        // ===== 부서별 데이터 처리 =====
+        async function processDeptData(deptKey) {
+            const inputData = document.getElementById(`${deptKey}_inputData`).value.trim();
+            const auth1 = document.getElementById(`${deptKey}_auth1`).value.trim();
+            const auth2 = document.getElementById(`${deptKey}_auth2`).value.trim();
+            const auth3 = document.getElementById(`${deptKey}_auth3`).value.trim();
+            const auth4 = document.getElementById(`${deptKey}_auth4`).value.trim();
+
+            if (!inputData) {
+                alert('데이터를 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'processAttendance',
+                        department: deptKey,
+                        inputData: inputData,
+                        auth1: auth1,
+                        auth2: auth2,
+                        auth3: auth3,
+                        auth4: auth4
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    deptResults[deptKey] = data.results;
+                    // 기존 출석보고서 표시
+                    document.getElementById(`${deptKey}_reportOutput`).value = data.report;
+                    // 매칭 통계 및 결과 표시
+                    displayDeptResults(deptKey, data.results);
+                    // 결과 섹션 표시
+                    document.getElementById(`${deptKey}_resultsSection`).classList.add('visible');
+                } else {
+                    alert('오류: ' + (data.message || '데이터 처리 실패'));
+                }
+            } catch (error) {
+                console.error('처리 오류:', error);
+                alert('네트워크 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // ===== 부서별 결과 표시 =====
+        function displayDeptResults(deptKey, results) {
+            const tableBody = document.getElementById(`${deptKey}_resultsTableBody`);
+            tableBody.innerHTML = '';
+
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.maskedName}</td>
+                    <td><strong>${result.fullName}</strong></td>
+                    <td>${result.phone}</td>
+                    <td>${result.zone}</td>
+                    <td>${result.absenceCount}회</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            const highAbsence = results.filter(r => r.absenceCount >= 8);
+            const lowAbsence = results.filter(r => r.absenceCount < 8);
+
+            document.getElementById(`${deptKey}_totalCount`).textContent = results.length;
+            document.getElementById(`${deptKey}_highAbsenceCount`).textContent = highAbsence.length;
+            document.getElementById(`${deptKey}_lowAbsenceCount`).textContent = lowAbsence.length;
+
+            displayNameGrid(`${deptKey}_highAbsenceGrid`, highAbsence);
+            displayNameGrid(`${deptKey}_lowAbsenceGrid`, lowAbsence);
+
+            document.getElementById(`${deptKey}_highAbsenceCountLabel`).textContent = `${highAbsence.length}명`;
+            document.getElementById(`${deptKey}_lowAbsenceCountLabel`).textContent = `${lowAbsence.length}명`;
+        }
+
+        // ===== 이름 그리드 표시 =====
+        function displayNameGrid(gridId, results) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+
+            results.forEach(result => {
+                const nameItem = document.createElement('div');
+                nameItem.className = 'name-item';
+                nameItem.textContent = result.fullName;
+                grid.appendChild(nameItem);
+            });
+        }
+
+        // ===== 부서별 보고서 복사 =====
+        function copyDeptReport(deptKey) {
+            const reportText = document.getElementById(`${deptKey}_reportOutput`).value;
+            copyToClipboard(reportText);
+        }
+
+        // ===== 부서별 이름 복사 =====
+        function copyDeptNames(deptKey, type) {
+            if (!deptResults[deptKey]) {
+                alert('데이터를 먼저 처리해주세요.');
+                return;
+            }
+
+            const results = type === 'high' 
+                ? deptResults[deptKey].filter(r => r.absenceCount >= 8)
+                : deptResults[deptKey].filter(r => r.absenceCount < 8);
+
+            const names = results.map(r => r.fullName);
+            const rows = [];
+            for (let i = 0; i < names.length; i += 4) {
+                const row = names.slice(i, i + 4).join(' ');
+                rows.push(row);
+            }
+            
+            const textToCopy = rows.join('\n');
+            copyToClipboard(textToCopy);
+        }
+
+        // ===== 부서별 초기화 =====
+        function resetDept(deptKey) {
+            document.getElementById(`${deptKey}_inputData`).value = '';
+            document.getElementById(`${deptKey}_auth1`).value = '';
+            document.getElementById(`${deptKey}_auth2`).value = '';
+            document.getElementById(`${deptKey}_auth3`).value = '';
+            document.getElementById(`${deptKey}_auth4`).value = '';
+            document.getElementById(`${deptKey}_resultsSection`).classList.remove('visible');
+            deptResults[deptKey] = null;
+        }
+
+        // ===== 클립보드 복사 =====
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => alert('복사됨!'))
+                    .catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('복사됨!');
+            } catch (err) {
+                alert('복사 실패: ' + err);
+            }
+        }
+    
+
+        // ========== 전도 활동 누적 시스템 ==========
+        function switchEvangelistTab(event, tabName) {
+            const container = event.target.closest('.card');
+            const tabs = container.querySelectorAll('.tab-content');
+            const buttons = container.querySelectorAll('.tab-btn');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            container.querySelector('#' + tabName + '-tab-evangelist').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function parseAttendanceData(text) {
+            const lines = text.trim().split('\n');
+            const data = {
+                date: '',
+                sections: {
+                    '찾기활동': {},
+                    '만남/인터뷰': [],
+                    '복음방': [],
+                    '센터': [],
+                    '불참(사유)': []
+                }
+            };
+
+            let currentSection = '';
+            let currentTime = '';
+
+            for (let line of lines) {
+                line = line.trim();
+
+                if (line.includes('일(') && line.includes(')')) {
+                    data.date = line;
+                    continue;
+                }
+
+                if (line.startsWith('-🐟찾기활동')) {
+                    currentSection = '찾기활동';
+                    continue;
+                }
+                if (line.startsWith('-🐠만남/인터뷰')) {
+                    currentSection = '만남/인터뷰';
+                    continue;
+                }
+                if (line.startsWith('-🐬복음방')) {
+                    currentSection = '복음방';
+                    continue;
+                }
+                if (line.startsWith('-🐳센터')) {
+                    currentSection = '센터';
+                    continue;
+                }
+                if (line.startsWith('-🦑불참(사유)')) {
+                    currentSection = '불참(사유)';
+                    continue;
+                }
+
+                if (currentSection === '찾기활동') {
+                    if (line.startsWith('>')) {
+                        currentTime = line;
+                        if (!data.sections['찾기활동'][currentTime]) {
+                            data.sections['찾기활동'][currentTime] = [];
+                        }
+                    } else if (line && !line.startsWith('▫️') && !line.startsWith('*') && !line.includes('명단/시간/장소') && !line.includes('인도자-섭외자') && !line.includes('인도자-교사-섭외자') && !line.includes('인도자-교사-섬김이-수강생') && currentTime) {
+                        const names = line.split(/\s+/).filter(n => n.length > 0);
+                        data.sections['찾기활동'][currentTime].push(...names);
+                    }
+                } else if (currentSection && line && !line.startsWith('▫️') && !line.startsWith('*') && !line.includes('명단/시간/장소') && !line.includes('인도자-섭외자') && !line.includes('인도자-교사-섭외자') && !line.includes('인도자-교사-섬김이-수강생') && !line.includes('이름/수강생')) {
+                    data.sections[currentSection].push(line);
+                }
+            }
+
+            return data;
+        }
+
+        function mergeAttendanceData(existing, newData) {
+            const result = {
+                date: existing.date || newData.date,
+                sections: {
+                    '찾기활동': {},
+                    '만남/인터뷰': [],
+                    '복음방': [],
+                    '센터': [],
+                    '불참(사유)': []
+                }
+            };
+
+            const allTimes = new Set([
+                ...Object.keys(existing.sections['찾기활동']),
+                ...Object.keys(newData.sections['찾기활동'])
+            ]);
+
+            const sortTimes = (times) => {
+                return Array.from(times).sort((a, b) => {
+                    const timeA = a.match(/(\d{1,2}):(\d{2})/);
+                    const timeB = b.match(/(\d{1,2}):(\d{2})/);
+
+                    if (!timeA && !timeB) return 0;
+                    if (!timeA) return 1;
+                    if (!timeB) return -1;
+
+                    const minutesA = parseInt(timeA[1]) * 60 + parseInt(timeA[2]);
+                    const minutesB = parseInt(timeB[1]) * 60 + parseInt(timeB[2]);
+
+                    return minutesA - minutesB;
+                });
+            };
+
+            const sortedTimes = sortTimes(allTimes);
+
+            for (let time of sortedTimes) {
+                const existingNames = existing.sections['찾기활동'][time] || [];
+                const newNames = newData.sections['찾기활동'][time] || [];
+
+                const merged = [...existingNames];
+                for (let name of newNames) {
+                    if (!merged.includes(name)) {
+                        merged.push(name);
+                    }
+                }
+
+                if (merged.length > 0) {
+                    result.sections['찾기활동'][time] = merged;
+                }
+            }
+
+            ['만남/인터뷰', '복음방', '센터'].forEach(section => {
+                const existingItems = existing.sections[section] || [];
+                const newItems = newData.sections[section] || [];
+
+                result.sections[section] = [...existingItems];
+                for (let item of newItems) {
+                    if (item.trim() === '이름/수강생') continue;
+                    const formattedItem = item.replace(/\//g, '-');
+                    if (!result.sections[section].includes(formattedItem)) {
+                        result.sections[section].push(formattedItem);
+                    }
+                }
+            });
+
+            const existingAbsence = existing.sections['불참(사유)'] || [];
+            const newAbsence = newData.sections['불참(사유)'] || [];
+            const absenceMap = new Map();
+
+            for (let item of existingAbsence) {
+                const match = item.match(/^(.+?)\(([^)]+)\)$/);
+                if (match) {
+                    const names = match[1].trim().split(/\s+/);
+                    const reason = match[2];
+                    if (!absenceMap.has(reason)) {
+                        absenceMap.set(reason, new Set());
+                    }
+                    names.forEach(name => absenceMap.get(reason).add(name));
+                } else {
+                    if (!absenceMap.has('기타')) {
+                        absenceMap.set('기타', new Set());
+                    }
+                    absenceMap.get('기타').add(item.trim());
+                }
+            }
+
+            for (let item of newAbsence) {
+                const match = item.match(/^(.+?)\(([^)]+)\)$/);
+                if (match) {
+                    const names = match[1].trim().split(/\s+/);
+                    const reason = match[2];
+                    if (!absenceMap.has(reason)) {
+                        absenceMap.set(reason, new Set());
+                    }
+                    names.forEach(name => absenceMap.get(reason).add(name));
+                } else {
+                    if (!absenceMap.has('기타')) {
+                        absenceMap.set('기타', new Set());
+                    }
+                    absenceMap.get('기타').add(item.trim());
+                }
+            }
+
+            result.sections['불참(사유)'] = [];
+            for (let [reason, names] of absenceMap) {
+                if (reason === '기타') {
+                    result.sections['불참(사유)'].push(...Array.from(names));
+                } else {
+                    const nameList = Array.from(names).join(' ');
+                    result.sections['불참(사유)'].push(`${nameList}(${reason})`);
+                }
+            }
+
+            return result;
+        }
+
+        function formatAttendanceData(data) {
+            let output = data.date + '\n\n';
+            output += '▫️활동자 \n\n';
+            output += '-🐟찾기활동\n';
+
+            const timeOrder = Object.keys(data.sections['찾기활동']);
+
+            for (let time of timeOrder) {
+                const names = data.sections['찾기활동'][time];
+                output += time + '\n';
+
+                const namesWithTime = [];
+                const namesWithoutTime = [];
+
+                for (let name of names) {
+                    if (name.includes('(') && name.includes(')')) {
+                        namesWithTime.push(name);
+                    } else {
+                        namesWithoutTime.push(name);
+                    }
+                }
+
+                for (let i = 0; i < namesWithoutTime.length; i += 4) {
+                    const group = namesWithoutTime.slice(i, i + 4);
+                    output += group.join(' ') + '\n';
+                }
+
+                for (let name of namesWithTime) {
+                    output += name + '\n';
+                }
+
+                output += '\n';
+            }
+
+            output += '-🐠만남/인터뷰\n';
+            if (data.sections['만남/인터뷰'].length > 0) {
+                output += data.sections['만남/인터뷰'].join('\n') + '\n';
+            }
+            output += '\n';
+
+            output += '-🐬복음방\n';
+            if (data.sections['복음방'].length > 0) {
+                output += data.sections['복음방'].join('\n') + '\n';
+            }
+            output += '\n';
+
+            output += '-🐳센터\n';
+            if (data.sections['센터'].length > 0) {
+                output += data.sections['센터'].join('\n') + '\n';
+            }
+            output += '\n';
+
+            output += '-🦑불참(사유)\n';
+            if (data.sections['불참(사유)'].length > 0) {
+                output += data.sections['불참(사유)'].join('\n') + '\n';
+            }
+            output += '\n';
+
+            output += '*구역장 이상은 필수 누적';
+
+            return output;
+        }
+
+        function mergeEvangelistData() {
+            const existingText = document.getElementById('existingDataEvangelist').value;
+            const newText = document.getElementById('newDataEvangelist').value;
+
+            if (!newText.trim()) {
+                alert('추가할 부서 데이터를 입력해주세요.');
+                return;
+            }
+
+            try {
+                let existingData;
+                if (existingText.trim()) {
+                    existingData = parseAttendanceData(existingText);
+                } else {
+                    existingData = {
+                        date: '',
+                        sections: {
+                            '찾기활동': {},
+                            '만남/인터뷰': [],
+                            '복음방': [],
+                            '센터': [],
+                            '불참(사유)': []
+                        }
+                    };
+                }
+
+                const newData = parseAttendanceData(newText);
+                const merged = mergeAttendanceData(existingData, newData);
+                const formatted = formatAttendanceData(merged);
+
+                document.getElementById('resultEvangelist').textContent = formatted;
+                document.getElementById('existingDataEvangelist').value = formatted;
+                document.getElementById('newDataEvangelist').value = '';
+
+            } catch (error) {
+                console.error(error);
+                alert('데이터 처리 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        function clearEvangelistInputs() {
+            document.getElementById('existingDataEvangelist').value = '';
+            document.getElementById('newDataEvangelist').value = '';
+            document.getElementById('resultEvangelist').textContent = '누적된 결과가 여기에 표시됩니다.';
+        }
+
+        function createNewEvangelistTemplate() {
+            const dateInput = document.getElementById('dateInputEvangelist').value.trim();
+            const date = dateInput || '24일(월)';
+
+            const template = `${date}
+
+▫️활동자 
+
+-🐟찾기활동
+> 13:30 
+
+> 16:00
+
+> 19:30 
+
+> 기타 시간/장소
+(명단/시간/장소)
+
+-🐠만남/인터뷰
+(인도자-섭외자)
+
+-🐬복음방
+(인도자-교사-섭외자)
+
+-🐳센터
+(인도자-교사-섬김이-수강생)
+
+-🦑불참(사유)
+
+*구역장 이상은 필수 누적`;
+
+            document.getElementById('resultEvangelist').textContent = template;
+        }
+
+        function copyEvangelistResult() {
+            const resultText = document.getElementById('resultEvangelist').textContent;
+
+            if (resultText === '누적된 결과가 여기에 표시됩니다.') {
+                alert('복사할 내용이 없습니다.');
+                return;
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(resultText).then(() => {
+                    showEvangelistCopySuccess();
+                }).catch(() => {
+                    fallbackEvangelistCopy(resultText);
+                });
+            } else {
+                fallbackEvangelistCopy(resultText);
+            }
+        }
+
+        function fallbackEvangelistCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showEvangelistCopySuccess();
+                } else {
+                    alert('복사에 실패했습니다.');
+                }
+            } catch (err) {
+                alert('복사 중 오류가 발생했습니다.');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function showEvangelistCopySuccess() {
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '✅ 복사됨!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+</script>
+</body>
+</html>
+        <!-- 전도 - 활동 누적 페이지 -->
+        <div id="page-evangelism" class="page-section">
+            <div class="container">
+                <h1>📋 전도 - 활동 누적 통합 시스템</h1>
+
+                <div class="info-box">
+                    💡 사용방법: 기존 누적 데이터를 첫 번째 입력창에, 새로 추가할 부서 데이터를 두 번째 입력창에 넣고 "누적하기" 버튼을 누르세요.
+                </div>
+
+                <div class="card">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchEvangelistTab(event, 'merge')">누적 통합</button>
+                        <button class="tab-btn" onclick="switchEvangelistTab(event, 'new')">새 양식 만들기</button>
+                    </div>
+
+                    <div id="merge-tab-evangelist" class="tab-content active">
+                        <div class="form-group">
+                            <label>1️⃣ 기존 누적 데이터 (없으면 비워두세요)</label>
+                            <textarea id="existingDataEvangelist" placeholder="이전에 누적된 활동 데이터를 붙여넣으세요..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>2️⃣ 추가할 부서 데이터</label>
+                            <textarea id="newDataEvangelist" placeholder="새로 추가할 부서의 활동 데이터를 붙여넣으세요..."></textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn-primary" onclick="mergeEvangelistData()">📥 누적하기</button>
+                            <button class="btn-secondary" onclick="clearEvangelistInputs()">🗑️ 입력 초기화</button>
+                        </div>
+                    </div>
+
+                    <div id="new-tab-evangelist" class="tab-content">
+                        <div class="form-group">
+                            <label>날짜 입력 (예: 24일(월))</label>
+                            <input type="text" id="dateInputEvangelist" placeholder="24일(월)">
+                        </div>
+                        <div class="button-group">
+                            <button class="btn-primary" onclick="createNewEvangelistTemplate()">📝 새 양식 생성</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title">📊 통합 결과</div>
+                    <div class="result-container">
+                        <button class="copy-btn" onclick="copyEvangelistResult()">📋 복사</button>
+                        <div id="resultEvangelist" class="result-area">누적된 결과가 여기에 표시됩니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
