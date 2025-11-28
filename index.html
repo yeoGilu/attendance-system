@@ -236,30 +236,56 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 8px;
-            right: 12px;
-            z-index: 10001;
-            background: #3182ce;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-weight: 600;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
+.menu-toggle {
+    display: none;
+    position: fixed;
+    top: 8px;
+    left: 12px;              /* ← right를 left로 변경 */
+    z-index: 10001;
+    background: #3182ce;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-weight: 600;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
 
-        .menu-toggle:hover {
-            background: #2563eb;
-        }
+.menu-toggle:hover {
+    background: #2563eb;
+}
+
+.logout-btn-topbar {
+    position: fixed;
+    top: 8px;
+    right: 12px;
+    z-index: 10001;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-weight: 600;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    font-size: 14px;
+}
+
+.logout-btn-topbar:hover {
+    background: #c53030;
+}
+
 
         .overlay {
             display: none;
@@ -935,7 +961,10 @@
     </div>
 
     <!-- 모바일 메뉴 버튼 -->
-    <button class="menu-toggle" onclick="toggleSidebar()">메뉴</button>
+    <!-- 왼쪽 상단으로 이동 -->
+<button class="menu-toggle menu-toggle-left" onclick="toggleSidebar()">☰</button>
+<button class="logout-btn-topbar" onclick="logoutSystem()">로그아웃</button>
+
     <div class="overlay" onclick="toggleSidebar()"></div>
 
     <!-- 사이드바 -->
@@ -999,11 +1028,6 @@
             </div>
         </div>
 
-<div class="logout-container">
-    <button class="logout-btn-sidebar" onclick="logoutSystem()">
-        로그아웃
-    </button>
-</div>
 
     </nav>
 
