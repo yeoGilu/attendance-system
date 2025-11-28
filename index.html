@@ -178,22 +178,26 @@
             gap: 10px;
         }
 
-        .logout-btn-sidebar {
-            width: 100%;
-            padding: 12px;
-            background: #e53e3e;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: 600;
-            transition: background 0.2s;
-            font-size: 0.95rem;
-        }
+.logout-btn-sidebar {
+    width: 100%;
+    padding: 12px;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: background 0.2s;
+    font-size: 0.95rem;
+    position: sticky;           /* ← 추가 */
+    bottom: 10px;               /* ← 추가 */
+    z-index: 100;               /* ← 추가 */
+}
+
 
         .logout-btn-sidebar:hover {
             background: #c53030;
