@@ -1526,7 +1526,7 @@
     </main>
 
     <script>
-        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKZH7MiKm5G0I0jFSiHUJbwPJHu7HrkCJyTv32ig_q1T7SzPkzu0Lvigb3s0UN7CKBGA/exec";
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzb5cUWm0OTTKSzAXEZTyEpqLflnrq0MaUWB2Ap4aWa9qAtGq1C39J9V3qMMoszlIhipQ/exec";
         let isLoggedIn = false;
         let deptResults = {};
 
@@ -1563,69 +1563,55 @@
             }
         }
 
-        // ===== 공지사항 관리 함수 =====
-// GitHub Gist 설정
-const GITHUB_TOKEN = "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";  // 위에서 생성한 토큰
-const GIST_ID = "298358205e282f665f2c18879038fdd0";    // 위에서 복사한 Gist ID
-const GITHUB_API_URL = `https://api.github.com/gists/${GIST_ID}`;
+// ===== 공지사항 관리 함수 (Google Apps Script 연동) =====
 
-// 공지사항 로드
-async function loadNotice() {
-    try {
-        let notice = localStorage.getItem('systemNotice') || '';
-        
-        // GitHub Gist에서 로드
-        const response = await fetch(GITHUB_API_URL);
-        if (response.ok) {
-            const gist = await response.json();
-            const content = gist.files['notice.json'].content;
-            const data = JSON.parse(content);
-            notice = data.notice || notice;
-        }
-        
+function loadNotice() {
+    // 페이지 로드 시 공지사항 불러오기
+    fetch(GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getNotice' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const notice = data.notice || '';
         document.getElementById('homeNoticeContent').textContent = notice;
         document.getElementById('settingsNoticeTextarea').value = notice;
-    } catch (error) {
-        const notice = localStorage.getItem('systemNotice') || '';
-        document.getElementById('homeNoticeContent').textContent = notice;
-        document.getElementById('settingsNoticeTextarea').value = notice;
-    }
+    })
+    .catch(error => {
+        console.log('공지사항 로드 실패:', error);
+        document.getElementById('homeNoticeContent').textContent = '';
+        document.getElementById('settingsNoticeTextarea').value = '';
+    });
 }
 
-// 공지사항 저장
-async function saveNotice() {
+function saveNotice() {
     const notice = document.getElementById('settingsNoticeTextarea').value;
     
-    // localStorage에 저장
-    localStorage.setItem('systemNotice', notice);
+    // 화면에 즉시 반영
     document.getElementById('homeNoticeContent').textContent = notice;
     
-    // GitHub Gist에도 저장
-    try {
-        const response = await fetch(GITHUB_API_URL, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                files: {
-                    'notice.json': {
-                        content: JSON.stringify({ notice: notice })
-                    }
-                }
-            })
-        });
-        
-        if (response.ok) {
+    // Apps Script로 저장
+    fetch(GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: 'setNotice',
+            notice: notice
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             alert('공지사항이 저장되었습니다! ✅');
         } else {
-            alert('공지사항이 저장되었습니다! (로컬만)');
+            alert('공지사항 저장 실패: ' + (data.error || '알 수 없는 오류'));
         }
-    } catch (error) {
-        alert('공지사항이 저장되었습니다! (로컬에만)');
-    }
+    })
+    .catch(error => {
+        console.error('저장 중 오류:', error);
+        alert('공지사항 저장 중 네트워크 오류가 발생했습니다.');
+    });
 }
+
 
 
         // ===== 홈으로 돌아가기 함수 =====
